@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QUANT AI — Terminal Institucional</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#080c14;color:#c8d4e8;font-family:'Courier New',monospace;font-size:12px;min-height:100vh;overflow-x:hidden;}
+:root{
+  --bg1:#080c14;--bg2:#0d1321;--bg3:#111827;--bg4:#1a2236;
+  --accent:#00d4ff;--accent2:#7c3aed;--green:#00ff88;--red:#ff4455;--yellow:#ffd700;--orange:#ff8c00;
+  --border:#1e3a5f;--text1:#c8d4e8;--text2:#7090b0;--text3:#4a6080;
+}
+.terminal{background:var(--bg1);min-height:100vh;display:flex;flex-direction:column;}
+.hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.logo{color:var(--accent);font-size:14px;font-weight:bold;letter-spacing:2px;white-space:nowrap;}
+.logo span{color:var(--accent2);}
+.status-bar{display:flex;gap:12px;align-items:center;flex:1;flex-wrap:wrap;}
+.stat-pill{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:3px 8px;font-size:10px;display:flex;gap:6px;align-items:center;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;};}
+.time-display{color:var(--accent);font-size:11px;margin-left:auto;}
+.main-grid{display:grid;grid-template-columns:220px 1fr 300px;gap:0;flex:1;height:calc(100vh - 48px);}
+@media(max-width:900px){
+  .main-grid{grid-template-columns:1fr;height:auto;}
+  .left-panel,.right-panel{display:none;}
+}
+.left-panel{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.panel-hdr{background:var(--bg3);padding:8px 12px;font-size:10px;color:var(--accent);letter-spacing:1px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.watchlist{overflow-y:auto;flex:1;}
+.wl-item{padding:8px 12px;border-bottom:1px solid rgba(30,58,95,0.4);cursor:pointer;transition:background 0.15s;}
+.wl-item:hover,.wl-item.active{background:var(--bg4);}
+.wl-ticker{color:var(--text1);font-size:12px;font-weight:bold;}
+.wl-price{color:var(--accent);font-size:11px;}
+.wl-chg{font-size:10px;}
+.wl-chg.up{color:var(--green);}
+.wl-chg.dn{color:var(--red);}
+.wl-signal{font-size:9px;padding:1px 5px;border-radius:2px;float:right;margin-top:2px;}
+.sig-buy{background:rgba(0,255,136,0.15);color:var(--green);border:1px solid rgba(0,255,136,0.3);}
+.sig-sell{background:rgba(255,68,85,0.15);color:var(--red);border:1px solid rgba(255,68,85,0.3);}
+.sig-wait{background:rgba(255,215,0,0.15);color:var(--yellow);border:1px solid rgba(255,215,0,0.3);}
+.center-panel{display:flex;flex-direction:column;overflow:hidden;}
+.ticker-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.ticker-input{background:var(--bg3);border:1px solid var(--border);color:var(--accent);font-family:'Courier New',monospace;font-size:14px;padding:6px 12px;border-radius:3px;width:120px;text-transform:uppercase;letter-spacing:2px;}
+.ticker-input:focus{outline:none;border-color:var(--accent);}
+.btn{background:var(--bg3);border:1px solid var(--accent);color:var(--accent);font-family:'Courier New',monospace;font-size:11px;padding:6px 14px;border-radius:3px;cursor:pointer;transition:all 0.2s;letter-spacing:1px;white-space:nowrap;}
+.btn:hover{background:rgba(0,212,255,0.1);}
+.btn.primary{background:rgba(0,212,255,0.15);}
+.btn.analyzing{opacity:0.6;cursor:default;}
+.btn-ai{background:rgba(124,58,237,0.2);border-color:var(--accent2);color:#a78bfa;}
+.btn-ai:hover{background:rgba(124,58,237,0.3);}
+.analysis-mode{display:flex;gap:6px;flex-wrap:wrap;}
+.mode-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:10px;padding:4px 8px;border-radius:2px;cursor:pointer;transition:all 0.2s;}
+.mode-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,0.08);}
+.signal-panel{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;min-height:280px;max-height:360px;overflow-y:auto;}
+.signal-empty{color:var(--text3);text-align:center;padding:40px;font-size:11px;}
+.signal-content{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:600px){.signal-content{grid-template-columns:1fr;}}
+.signal-header{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:4px;margin-bottom:4px;flex-wrap:wrap;}
+.signal-header.buy{background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.3);}
+.signal-header.sell{background:rgba(255,68,85,0.08);border:1px solid rgba(255,68,85,0.3);}
+.signal-header.wait{background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);}
+.signal-icon{font-size:28px;}
+.signal-ticker{font-size:20px;font-weight:bold;color:var(--text1);}
+.signal-action{font-size:14px;font-weight:bold;letter-spacing:2px;}
+.signal-action.buy{color:var(--green);}
+.signal-action.sell{color:var(--red);}
+.signal-action.wait{color:var(--yellow);}
+.confidence-bar{flex:1;max-width:160px;}
+.conf-label{font-size:9px;color:var(--text2);margin-bottom:3px;}
+.conf-track{background:var(--bg3);border-radius:2px;height:6px;overflow:hidden;}
+.conf-fill{height:100%;border-radius:2px;transition:width 0.5s;}
+.conf-fill.high{background:var(--green);}
+.conf-fill.med{background:var(--yellow);}
+.conf-fill.low{background:var(--red);}
+.conf-pct{font-size:13px;font-weight:bold;}
+.metrics-card{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:10px;}
+.metrics-card h4{font-size:9px;color:var(--accent);letter-spacing:1px;margin-bottom:8px;}
+.metric-row{display:flex;justify-content:space-between;align-items:center;padding:2px 0;border-bottom:1px solid rgba(30,58,95,0.3);}
+.metric-row:last-child{border-bottom:none;}
+.metric-label{color:var(--text2);font-size:10px;}
+.metric-value{font-size:11px;font-weight:bold;color:var(--text1);}
+.metric-value.green{color:var(--green);}
+.metric-value.red{color:var(--red);}
+.metric-value.yellow{color:var(--yellow);}
+.metric-value.accent{color:var(--accent);}
+.reasons-card{grid-column:1/-1;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:10px;}
+.reasons-card h4{font-size:9px;color:var(--accent);letter-spacing:1px;margin-bottom:8px;}
+.reason-item{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:10px;color:var(--text1);}
+.reason-dot{width:4px;height:4px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.loading-analysis{text-align:center;padding:30px;color:var(--accent);}
+.loading-analysis .spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-step{font-size:10px;color:var(--text2);margin-top:4px;}
+.indicators-strip{background:var(--bg2);border-bottom:1px solid var(--border);padding:6px 16px;display:flex;gap:16px;overflow-x:auto;flex-wrap:nowrap;}
+.ind-item{display:flex;flex-direction:column;align-items:center;min-width:60px;flex-shrink:0;}
+.ind-name{font-size:9px;color:var(--text3);letter-spacing:0.5px;}
+.ind-value{font-size:11px;font-weight:bold;}
+.ind-bull{color:var(--green);}
+.ind-bear{color:var(--red);}
+.ind-neut{color:var(--yellow);}
+.chat-area{flex:1;overflow-y:auto;padding:12px 16px;background:var(--bg1);display:flex;flex-direction:column;gap:8px;}
+.msg{max-width:85%;border-radius:4px;padding:8px 12px;font-size:11px;line-height:1.6;}
+.msg.ai{background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--accent);align-self:flex-start;color:var(--text1);}
+.msg.user{background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);align-self:flex-end;color:var(--text1);}
+.msg-meta{font-size:9px;color:var(--text3);margin-bottom:4px;}
+.msg-meta.ai{color:var(--accent);}
+.chat-input-wrap{background:var(--bg2);border-top:1px solid var(--border);padding:10px 16px;display:flex;gap:8px;}
+.chat-input{flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text1);font-family:'Courier New',monospace;font-size:11px;padding:8px 12px;border-radius:3px;resize:none;height:40px;}
+.chat-input:focus{outline:none;border-color:var(--accent);}
+.right-panel{background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.right-tabs{display:flex;border-bottom:1px solid var(--border);}
+.rtab{flex:1;padding:7px;text-align:center;font-size:9px;letter-spacing:0.5px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:all 0.2s;}
+.rtab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.right-content{flex:1;overflow-y:auto;padding:10px;}
+.tape-item{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(30,58,95,0.2);font-size:10px;animation:fadein 0.3s;}
+@keyframes fadein{from{opacity:0;transform:translateY(-3px);}to{opacity:1;transform:translateY(0);}}
+.tape-buy{color:var(--green);}
+.tape-sell{color:var(--red);}
+.tape-dark{color:var(--accent);}
+.of-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.of-label{font-size:9px;color:var(--text2);width:40px;text-align:right;}
+.of-bar-wrap{flex:1;height:8px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.of-val{font-size:9px;width:40px;}
+.greek-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(30,58,95,0.2);font-size:10px;}
+.greek-name{color:var(--text2);}
+.greek-val{font-weight:bold;}
+.heatmap-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-top:6px;}
+.hm-cell{padding:6px 4px;border-radius:2px;text-align:center;cursor:pointer;}
+.hm-ticker{font-size:9px;font-weight:bold;}
+.hm-chg{font-size:8px;}
+.hm-strong-up{background:rgba(0,255,136,0.25);border:1px solid rgba(0,255,136,0.4);}
+.hm-up{background:rgba(0,255,136,0.12);border:1px solid rgba(0,255,136,0.2);}
+.hm-dn{background:rgba(255,68,85,0.12);border:1px solid rgba(255,68,85,0.2);}
+.hm-strong-dn{background:rgba(255,68,85,0.25);border:1px solid rgba(255,68,85,0.4);}
+.hm-neut{background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.15);}
+.alert-item{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:7px 10px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:flex-start;}
+.alert-ticker{font-size:11px;font-weight:bold;color:var(--text1);}
+.alert-msg{font-size:9px;color:var(--text2);margin-top:2px;}
+.alert-time{font-size:9px;color:var(--text3);}
+.port-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(30,58,95,0.2);font-size:10px;}
+.port-ticker{font-weight:bold;color:var(--text1);}
+.port-pnl.pos{color:var(--green);}
+.port-pnl.neg{color:var(--red);}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-track{background:var(--bg1);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.risk-meter{margin-top:8px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:10px;}
+.risk-title{font-size:9px;color:var(--accent);letter-spacing:1px;margin-bottom:6px;}
+.risk-bar-wrap{display:flex;height:10px;border-radius:2px;overflow:hidden;margin:4px 0;}
+.risk-seg{height:100%;}
+.risk-labels{display:flex;justify-content:space-between;font-size:8px;color:var(--text3);}
+.error-msg{color:var(--red);font-size:10px;padding:10px;text-align:center;}
+.tag{display:inline-block;font-size:8px;padding:1px 5px;border-radius:2px;margin:1px;}
+.tag-info{background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);color:var(--accent);}
+.tag-bull{background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);color:var(--green);}
+.api-notice{background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);border-radius:4px;padding:10px 14px;margin:8px 16px;font-size:10px;color:var(--yellow);display:flex;align-items:center;gap:8px;}
+.api-notice input{background:var(--bg3);border:1px solid var(--border);color:var(--accent);font-family:'Courier New',monospace;font-size:11px;padding:4px 8px;border-radius:3px;width:320px;margin:0 6px;}
+.api-notice input:focus{outline:none;border-color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="terminal">
+
+<div class="hdr">
+  <div class="logo">⬡ QUANT<span>AI</span> TERMINAL</div>
+  <div class="status-bar">
+    <div class="stat-pill"><span class="dot"></span> IA EN VIVO</div>
+    <div class="stat-pill"><span class="dot"></span> MERCADO ABIERTO</div>
+    <div class="stat-pill">SPY <span style="color:var(--green)">+0.43%</span></div>
+    <div class="stat-pill">QQQ <span style="color:var(--green)">+0.61%</span></div>
+    <div class="stat-pill">VIX <span style="color:var(--red)">18.4 ↑</span></div>
+    <div class="stat-pill">DXY <span style="color:var(--red)">104.2 ↓</span></div>
+  </div>
+  <div class="time-display" id="clock">--:--:-- EST</div>
+</div>
+
+<div class="api-notice" id="apiNotice">
+  ⚠ API Key de Anthropic requerida:
+  <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." />
+  <button class="btn" onclick="saveApiKey()">GUARDAR</button>
+  <span id="apiStatus" style="font-size:9px;"></span>
+</div>
+
+<div class="main-grid">
+
+  <div class="left-panel">
+    <div class="panel-hdr">WATCHLIST <span style="color:var(--text3)">SMART MONEY</span></div>
+    <div class="watchlist" id="watchlist"></div>
+    <div style="padding:10px;border-top:1px solid var(--border);">
+      <div class="risk-meter">
+        <div class="risk-title">EXPOSICIÓN RIESGO</div>
+        <div class="risk-bar-wrap">
+          <div class="risk-seg" style="flex:35;background:rgba(0,255,136,0.5);"></div>
+          <div class="risk-seg" style="flex:40;background:rgba(255,215,0,0.5);"></div>
+          <div class="risk-seg" style="flex:25;background:rgba(255,68,85,0.5);"></div>
+        </div>
+        <div class="risk-labels"><span>BAJO</span><span>MEDIO</span><span>ALTO</span></div>
+        <div style="margin-top:6px;font-size:9px;color:var(--text2);">Capital en riesgo: <span style="color:var(--yellow)">2.3%</span></div>
+        <div style="font-size:9px;color:var(--text2);">Posiciones abiertas: <span style="color:var(--accent)">3</span></div>
+        <div style="font-size:9px;color:var(--text2);">P&L hoy: <span style="color:var(--green)">+$1,247</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="center-panel">
+
+    <div class="ticker-bar">
+      <input class="ticker-input" id="tickerInput" type="text" placeholder="TICKER" value="NVDA" maxlength="6">
+      <button class="btn primary" id="analyzeBtn" onclick="runAnalysis()">⚡ ANALIZAR IA</button>
+      <button class="btn btn-ai" onclick="quickChat('Analiza para CALL alcista')">🟢 CALL</button>
+      <button class="btn btn-ai" onclick="quickChat('Analiza para PUT bajista')">🔴 PUT</button>
+      <div class="analysis-mode">
+        <div class="mode-btn active" onclick="setMode(this,'COMPLETO')">COMPLETO</div>
+        <div class="mode-btn" onclick="setMode(this,'OPCIONES')">OPCIONES</div>
+        <div class="mode-btn" onclick="setMode(this,'SCALPING')">SCALPING</div>
+        <div class="mode-btn" onclick="setMode(this,'SWING')">SWING</div>
+      </div>
+    </div>
+
+    <div class="signal-panel" id="signalPanel">
+      <div class="signal-empty">
+        <div style="font-size:24px;margin-bottom:10px;">⚡</div>
+        <div style="color:var(--accent);font-size:12px;margin-bottom:6px;">AGENTE IA LISTO</div>
+        <div>1. Ingresa tu API Key de Anthropic arriba</div>
+        <div style="margin-top:4px;">2. Escribe un ticker y presiona ANALIZAR IA</div>
+        <div style="margin-top:12px;">
+          <span class="tag tag-info">Price Action</span>
+          <span class="tag tag-info">Order Flow</span>
+          <span class="tag tag-info">Smart Money</span>
+          <span class="tag tag-bull">Dark Pools</span>
+          <span class="tag tag-info">Greeks</span>
+          <span class="tag tag-bull">Institucional</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="indicators-strip" id="indStrip">
+      <div class="ind-item"><div class="ind-name">RSI(14)</div><div class="ind-value ind-neut" id="ind-rsi">--</div></div>
+      <div class="ind-item"><div class="ind-name">MACD</div><div class="ind-value ind-neut" id="ind-macd">--</div></div>
+      <div class="ind-item"><div class="ind-name">VWAP</div><div class="ind-value ind-neut" id="ind-vwap">--</div></div>
+      <div class="ind-item"><div class="ind-name">EMA9</div><div class="ind-value ind-neut" id="ind-ema9">--</div></div>
+      <div class="ind-item"><div class="ind-name">EMA20</div><div class="ind-value ind-neut" id="ind-ema20">--</div></div>
+      <div class="ind-item"><div class="ind-name">EMA200</div><div class="ind-value ind-neut" id="ind-ema200">--</div></div>
+      <div class="ind-item"><div class="ind-name">VOL</div><div class="ind-value ind-neut" id="ind-vol">--</div></div>
+      <div class="ind-item"><div class="ind-name">DELTA</div><div class="ind-value ind-neut" id="ind-delta">--</div></div>
+      <div class="ind-item"><div class="ind-name">GAMMA</div><div class="ind-value ind-neut" id="ind-gamma">--</div></div>
+      <div class="ind-item"><div class="ind-name">OI</div><div class="ind-value ind-neut" id="ind-oi">--</div></div>
+      <div class="ind-item"><div class="ind-name">DARK%</div><div class="ind-value ind-neut" id="ind-dark">--</div></div>
+      <div class="ind-item"><div class="ind-name">SENT</div><div class="ind-value ind-neut" id="ind-sent">--</div></div>
+    </div>
+
+    <div class="chat-area" id="chatArea">
+      <div class="msg ai">
+        <div class="msg-meta ai">⚡ QUANT AI — Motor Institucional v3.0</div>
+        Sistema inicializado. Soy tu agente de trading institucional con IA.<br><br>
+        <b>Para comenzar:</b><br>
+        1. Ingresa tu API Key de Anthropic en la barra amarilla<br>
+        2. Escribe un ticker y presiona ANALIZAR IA<br>
+        3. O hazme cualquier pregunta aquí abajo<br><br>
+        <span style="color:var(--text2)">Ejemplos: "analiza TSLA para swing trade", "mejor strike SPY esta semana", "dame señal AAPL opciones"</span>
+      </div>
+    </div>
+
+    <div class="chat-input-wrap">
+      <textarea class="chat-input" id="chatInput" placeholder="Pregunta al agente IA... (Enter para enviar)" onkeydown="chatKeydown(event)"></textarea>
+      <button class="btn primary" onclick="sendChat()">ENVIAR ↗</button>
+    </div>
+
+  </div>
+
+  <div class="right-panel">
+    <div class="right-tabs">
+      <div class="rtab active" onclick="switchTab(this,'tape')">TAPE</div>
+      <div class="rtab" onclick="switchTab(this,'flow')">FLOW</div>
+      <div class="rtab" onclick="switchTab(this,'greeks')">GREEKS</div>
+      <div class="rtab" onclick="switchTab(this,'heat')">HEAT</div>
+      <div class="rtab" onclick="switchTab(this,'alerts')">ALERTAS</div>
+    </div>
+    <div class="right-content" id="rightContent"></div>
+    <div style="border-top:1px solid var(--border);padding:8px 10px;">
+      <div style="font-size:9px;color:var(--accent);letter-spacing:1px;margin-bottom:6px;">PORTFOLIO TRACKER</div>
+      <div id="portfolioList"></div>
+      <div style="margin-top:6px;border-top:1px solid var(--border);padding-top:6px;">
+        <div style="display:flex;justify-content:space-between;font-size:10px;">
+          <span style="color:var(--text2)">P&L Total:</span><span style="color:var(--green);font-weight:bold;">+$4,823</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;margin-top:2px;">
+          <span style="color:var(--text2)">Win Rate:</span><span style="color:var(--green)">73%</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;margin-top:2px;">
+          <span style="color:var(--text2)">R/R Promedio:</span><span style="color:var(--accent)">1:2.8</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+const WL=[
+  {t:'NVDA',p:941.20,c:2.34,s:'COMPRAR'},{t:'AAPL',p:189.45,c:-0.82,s:'ESPERAR'},
+  {t:'TSLA',p:248.30,c:3.12,s:'COMPRAR'},{t:'SPY',p:524.80,c:0.43,s:'ESPERAR'},
+  {t:'QQQ',p:448.60,c:0.61,s:'COMPRAR'},{t:'MSFT',p:412.30,c:-0.31,s:'ESPERAR'},
+  {t:'AMZN',p:198.70,c:1.22,s:'COMPRAR'},{t:'META',p:512.40,c:2.18,s:'COMPRAR'},
+  {t:'AMD',p:168.90,c:-1.44,s:'VENDER'},{t:'GOOGL',p:174.20,c:0.88,s:'ESPERAR'},
+];
+const PORT=[
+  {t:'NVDA 950C',entry:18.40,cur:24.60,qty:5},
+  {t:'TSLA 250C',entry:8.20,cur:11.80,qty:10},
+  {t:'SPY 525P',entry:5.40,cur:3.10,qty:8},
+];
+const TAPE=[];
+const ALERTS=[
+  {t:'NVDA',msg:'Dark pool print $47M detectado — alcista',time:'10:23'},
+  {t:'TSLA',msg:'Absorción institucional en soporte $245',time:'09:58'},
+  {t:'SPY',msg:'VWAP reclaim confirmado — momentum',time:'09:45'},
+  {t:'AMD',msg:'Distribución institucional detectada',time:'09:31'},
+];
+
+let currentMode='COMPLETO';
+let activeTicker='NVDA';
+let currentTab='tape';
+let isAnalyzing=false;
+let apiKey='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';
+
+function saveApiKey(){
+  apiKey=document.getElementById('apiKeyInput').value.trim();
+  if(apiKey.startsWith('sk-ant')){
+    document.getElementById('apiStatus').textContent='✅ Conectado';
+    document.getElementById('apiStatus').style.color='var(--green)';
+    localStorage.setItem('qai_key',apiKey);
+    setTimeout(()=>{document.getElementById('apiNotice').style.display='none';},1500);
+  } else {
+    document.getElementById('apiStatus').textContent='❌ Key inválida';
+    document.getElementById('apiStatus').style.color='var(--red)';
+  }
+}
+
+window.onload=function(){document.getElementById('apiNotice').style.display='none';
+  const saved=localStorage.getItem('qai_key');
+  if(saved){
+    apiKey=saved;
+    document.getElementById('apiKeyInput').value=saved;
+    document.getElementById('apiStatus').textContent='✅ Conectado';
+    document.getElementById('apiStatus').style.color='var(--green)';
+    document.getElementById('apiNotice').style.display='none';
+  }
+  renderWatchlist();
+  renderPortfolio();
+  renderRightPanel();
+  setInterval(addTapeEntry,900);
+  setInterval(()=>{
+    WL.forEach(w=>{const d=(Math.random()-0.48)*0.15;w.p=parseFloat((w.p+d).toFixed(2));w.c=parseFloat((w.c+d*0.1).toFixed(2));});
+    renderWatchlist();
+  },3000);
+  setInterval(renderRightPanel,2000);
+  for(let i=0;i<5;i++) addTapeEntry();
+};
+
+function updateClock(){
+  const now=new Date();
+  const est=new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
+  document.getElementById('clock').textContent=est.toTimeString().slice(0,8)+' EST';
+}
+setInterval(updateClock,1000);
+updateClock();
+
+function renderWatchlist(){
+  document.getElementById('watchlist').innerHTML=WL.map(w=>`
+    <div class="wl-item${w.t===activeTicker?' active':''}" onclick="selectTicker('${w.t}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="wl-ticker">${w.t}</span>
+        <span class="wl-signal ${w.s==='COMPRAR'?'sig-buy':w.s==='VENDER'?'sig-sell':'sig-wait'}">${w.s}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:2px;">
+        <span class="wl-price">$${w.p.toFixed(2)}</span>
+        <span class="wl-chg ${w.c>=0?'up':'dn'}">${w.c>=0?'+':''}${w.c.toFixed(2)}%</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderPortfolio(){
+  document.getElementById('portfolioList').innerHTML=PORT.map(p=>{
+    const pnl=(p.cur-p.entry)*p.qty*100;
+    return`<div class="port-row">
+      <div><div class="port-ticker">${p.t}</div><div style="font-size:9px;color:var(--text3)">x${p.qty} @ $${p.entry}</div></div>
+      <div class="port-pnl ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}$${Math.abs(pnl).toFixed(0)}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectTicker(t){
+  activeTicker=t;
+  document.getElementById('tickerInput').value=t;
+  renderWatchlist();
+}
+
+function setMode(el,m){
+  currentMode=m;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function switchTab(el,tab){
+  currentTab=tab;
+  document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderRightPanel();
+}
+
+function addTapeEntry(){
+  const tickers=['NVDA','TSLA','SPY','AAPL','QQQ','MSFT'];
+  const t=tickers[Math.floor(Math.random()*tickers.length)];
+  const isBuy=Math.random()>0.45;
+  const isDark=Math.random()>0.85;
+  const size=Math.floor(Math.random()*500+50);
+  const price=(490+Math.random()*500).toFixed(2);
+  TAPE.push({t,isBuy,isDark,size,price,ts:new Date().toTimeString().slice(0,8)});
+  if(TAPE.length>100) TAPE.shift();
+}
+
+function renderRightPanel(){
+  const el=document.getElementById('rightContent');
+  if(currentTab==='tape'){
+    el.innerHTML=`<div style="font-size:9px;color:var(--accent);margin-bottom:6px;letter-spacing:1px;">TIME & SALES — TAPE READING</div>`+
+      TAPE.slice(-30).reverse().map(e=>`
+        <div class="tape-item">
+          <span style="color:var(--text3);font-size:9px">${e.ts}</span>
+          <span style="font-weight:bold">${e.t}</span>
+          <span class="${e.isDark?'tape-dark':e.isBuy?'tape-buy':'tape-sell'}">${e.isDark?'⚫ DARK':e.isBuy?'▲ BUY':'▼ SELL'}</span>
+          <span style="color:var(--text2);font-size:9px">${e.size.toLocaleString()}</span>
+          <span>$${e.price}</span>
+        </div>`).join('');
+  } else if(currentTab==='flow'){
+    el.innerHTML=`<div style="font-size:9px;color:var(--accent);margin-bottom:10px;letter-spacing:1px;">ORDER FLOW — DELTA IMBALANCE</div>`+
+      ['NVDA','TSLA','SPY','QQQ','AAPL'].map(t=>{
+        const b=Math.floor(40+Math.random()*40);const s=100-b;
+        return`<div style="margin-bottom:8px;">
+          <div style="font-size:10px;margin-bottom:3px;">${t}</div>
+          <div class="of-row">
+            <div class="of-label" style="color:var(--green)">${b}%</div>
+            <div class="of-bar-wrap"><div style="height:100%;background:var(--green);width:${b}%;border-radius:2px;"></div></div>
+            <div class="of-val" style="color:var(--green)">BUY</div>
+          </div>
+          <div class="of-row">
+            <div class="of-label" style="color:var(--red)">${s}%</div>
+            <div class="of-bar-wrap"><div style="height:100%;background:var(--red);width:${s}%;border-radius:2px;float:right;"></div></div>
+            <div class="of-val" style="color:var(--red)">SELL</div>
+          </div>
+        </div>`;}).join('')+
+      `<div style="margin-top:10px;font-size:9px;color:var(--accent);">ICEBERG ORDERS DETECTADAS</div>
+       <div style="font-size:9px;color:var(--text2);margin-top:4px;">
+         <div style="margin:3px 0;"><span style="color:var(--green)">●</span> NVDA: Iceberg $920 (42K hidden)</div>
+         <div style="margin:3px 0;"><span style="color:var(--green)">●</span> SPY: Absorción inst. $521</div>
+         <div style="margin:3px 0;"><span style="color:var(--red)">●</span> AMD: Spoofing en $172</div>
+       </div>`;
+  } else if(currentTab==='greeks'){
+    el.innerHTML=`<div style="font-size:9px;color:var(--accent);margin-bottom:10px;letter-spacing:1px;">OPTIONS GREEKS — ${activeTicker}</div>`+
+      [['Delta','0.54','var(--accent)'],['Gamma','0.023','var(--green)'],['Theta','-0.18','var(--red)'],
+       ['Vega','0.31','var(--yellow)'],['IV','42.3%','var(--orange)'],['IV Rank','67%','var(--yellow)'],
+       ['Put/Call','0.82','var(--green)'],['OI Calls','284K','var(--green)'],['OI Puts','198K','var(--accent)'],
+       ['Max Pain','$940','var(--yellow)'],['Gamma Expo','$2.4B','var(--accent)'],['Dark Vol','28%','var(--accent)'],
+      ].map(([n,v,c])=>`<div class="greek-row"><span class="greek-name">${n}</span><span class="greek-val" style="color:${c}">${v}</span></div>`).join('');
+  } else if(currentTab==='heat'){
+    el.innerHTML=`<div style="font-size:9px;color:var(--accent);margin-bottom:6px;letter-spacing:1px;">HEATMAP SECTORIAL</div>
+      <div class="heatmap-grid">`+
+      [['NVDA','+2.3','hm-strong-up'],['TSLA','+3.1','hm-strong-up'],['MSFT','-0.3','hm-dn'],['AAPL','-0.8','hm-dn'],
+       ['AMZN','+1.2','hm-up'],['META','+2.1','hm-strong-up'],['GOOGL','+0.8','hm-up'],['NFLX','+0.4','hm-neut'],
+       ['AMD','-1.4','hm-strong-dn'],['INTC','-2.1','hm-strong-dn'],['CRM','+0.6','hm-up'],['ORCL','-0.2','hm-neut'],
+       ['JPM','+0.3','hm-neut'],['BAC','-0.5','hm-dn'],['GS','+0.1','hm-neut'],['MS','-0.3','hm-dn'],
+      ].map(([t,c,cls])=>`<div class="hm-cell ${cls}" onclick="selectTicker('${t}')"><div class="hm-ticker">${t}</div><div class="hm-chg">${c}%</div></div>`).join('')+
+      `</div>`;
+  } else if(currentTab==='alerts'){
+    el.innerHTML=`<div style="font-size:9px;color:var(--accent);margin-bottom:6px;letter-spacing:1px;">ALERTAS INSTITUCIONALES</div>`+
+      ALERTS.map(a=>`<div class="alert-item">
+        <div><div class="alert-ticker">${a.t}</div><div class="alert-msg">${a.msg}</div></div>
+        <div class="alert-time">${a.time}</div>
+      </div>`).join('');
+  }
+}
+
+function showLoading(){
+  const steps=['Analizando price action...','Escaneando order flow...','Detectando smart money...','Analizando dark pools...','Calculando Greeks...','Procesando señales IA...'];
+  let i=0;
+  document.getElementById('signalPanel').innerHTML=`
+    <div class="loading-analysis">
+      <div class="spinner"></div>
+      <div style="color:var(--accent);font-size:12px;">MOTOR IA PROCESANDO</div>
+      <div class="loading-step" id="loadStep">${steps[0]}</div>
+      <div style="margin-top:8px;font-size:10px;color:var(--text3)">Analizando 31 indicadores institucionales</div>
+    </div>`;
+  return setInterval(()=>{i=(i+1)%steps.length;const el=document.getElementById('loadStep');if(el)el.textContent=steps[i];},700);
+}
+
+async function callClaude(prompt,system){
+  if(!apiKey){throw new Error('Ingresa tu API Key de Anthropic primero');}
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:1000,
+      system:system||'Eres un agente de trading institucional. Responde en español.',
+      messages:[{role:'user',content:prompt}]
+    })
+  });
+  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'Error API');}
+  const data=await r.json();
+  return data.content.map(i=>i.text||'').join('');
+}
+
+async function runAnalysis(){
+  if(isAnalyzing)return;
+  const ticker=document.getElementById('tickerInput').value.trim().toUpperCase();
+  if(!ticker)return;
+  activeTicker=ticker;
+  isAnalyzing=true;
+  const btn=document.getElementById('analyzeBtn');
+  btn.textContent='⏳ ANALIZANDO...';
+  btn.classList.add('analyzing');
+  const interval=showLoading();
+  try{
+    const system=`Eres un agente de trading institucional ultra-profesional. 
+Responde SOLO con JSON válido, sin backticks, sin texto adicional:
+{"ticker":"X","accion":"COMPRAR","activo":"CALL","confianza":83,"entrada":941.20,"stopLoss":932.80,"takeProfit1":958,"takeProfit2":968,"takeProfit3":980,"strike":"950C","expiracion":"7 DTE","rieskoRecompensa":"1:2.3","probabilidadExito":73,"timeframe":"Intraday / 1H","tamanioPosicion":"2-3% del capital","razones":["razón1","razón2","razón3","razón4","razón5","razón6","razón7"],"confirmaciones":["conf1","conf2","conf3","conf4"],"rsi":58,"macdSignal":"ALCISTA","vwapPos":"ENCIMA","ema9":"+","ema20":"+","ema200":"+","volSignal":"ALTO","delta":"0.58","gamma":"0.024","oi":"312K","oiBull":true,"darkPct":"31%","darkBull":true,"sentiment":"ALCISTA","analisis":"Análisis en 2-3 oraciones.","estado":"ENTRAR AHORA"}`;
+    const raw=await callClaude(`Analiza ${ticker} modo ${currentMode}. Fecha: ${new Date().toLocaleDateString('es-ES')}. Responde SOLO JSON.`,system);
+    clearInterval(interval);
+    let d;
+    try{d=JSON.parse(raw.replace(/```json|```/g,'').trim());}
+    catch(e){throw new Error('Error parseando respuesta IA');}
+    renderSignal(d);
+    updateIndicators(d);
+    const wl=WL.find(w=>w.t===ticker);
+    if(wl)wl.s=d.accion;
+    renderWatchlist();
+    addMessage('ai',`✅ <b>${d.ticker}</b> analizado — ${d.accion} ${d.activo} | Confianza: ${d.confianza}% | ${d.estado}`);
+  }catch(err){
+    clearInterval(interval);
+    document.getElementById('signalPanel').innerHTML=`<div class="error-msg">
+      <div style="font-size:18px;margin-bottom:8px;">⚠</div>
+      <div style="color:var(--yellow)">${err.message}</div>
+      ${!apiKey?'<div style="margin-top:6px;font-size:9px;color:var(--text3)">Ingresa tu API Key de Anthropic en la barra amarilla</div>':''}
+    </div>`;
+    addMessage('ai','⚠️ '+err.message);
+  }
+  isAnalyzing=false;
+  btn.textContent='⚡ ANALIZAR IA';
+  btn.classList.remove('analyzing');
+}
+
+function renderSignal(d){
+  const isUp=d.accion==='COMPRAR',isDown=d.accion==='VENDER';
+  const cls=isUp?'buy':isDown?'sell':'wait';
+  const icon=isUp?'🟢':isDown?'🔴':'🟡';
+  const confCls=d.confianza>=75?'high':d.confianza>=55?'med':'low';
+  document.getElementById('signalPanel').innerHTML=`
+    <div class="signal-content">
+      <div class="signal-header ${cls}">
+        <div class="signal-icon">${icon}</div>
+        <div>
+          <div class="signal-ticker">${d.ticker}</div>
+          <div class="signal-action ${cls}">${d.accion} ${d.activo||''}</div>
+        </div>
+        <div class="confidence-bar">
+          <div class="conf-label">CONFIANZA IA</div>
+          <div class="conf-track"><div class="conf-fill ${confCls}" style="width:${d.confianza}%"></div></div>
+          <div class="conf-pct" style="color:var(--${confCls==='high'?'green':confCls==='med'?'yellow':'red'})">${d.confianza}%</div>
+        </div>
+        <div style="margin-left:auto;text-align:right;">
+          <div style="font-size:10px;color:var(--text2)">ESTADO</div>
+          <div style="font-size:11px;color:var(--yellow);font-weight:bold">${d.estado||'MONITOREAR'}</div>
+        </div>
+      </div>
+      <div class="metrics-card">
+        <h4>NIVELES DE TRADING</h4>
+        <div class="metric-row"><span class="metric-label">Entrada Ideal</span><span class="metric-value accent">$${d.entrada}</span></div>
+        <div class="metric-row"><span class="metric-label">Stop Loss</span><span class="metric-value red">$${d.stopLoss}</span></div>
+        <div class="metric-row"><span class="metric-label">Take Profit 1</span><span class="metric-value green">$${d.takeProfit1}</span></div>
+        <div class="metric-row"><span class="metric-label">Take Profit 2</span><span class="metric-value green">$${d.takeProfit2}</span></div>
+        <div class="metric-row"><span class="metric-label">Take Profit 3</span><span class="metric-value green">$${d.takeProfit3}</span></div>
+        <div class="metric-row"><span class="metric-label">R/R Ratio</span><span class="metric-value yellow">${d.rieskoRecompensa}</span></div>
+        <div class="metric-row"><span class="metric-label">Prob. Éxito</span><span class="metric-value green">${d.probabilidadExito}%</span></div>
+      </div>
+      <div class="metrics-card">
+        <h4>OPCIONES — SMART MONEY</h4>
+        <div class="metric-row"><span class="metric-label">Strike</span><span class="metric-value accent">${d.strike}</span></div>
+        <div class="metric-row"><span class="metric-label">Expiración</span><span class="metric-value yellow">${d.expiracion}</span></div>
+        <div class="metric-row"><span class="metric-label">Timeframe</span><span class="metric-value accent">${d.timeframe}</span></div>
+        <div class="metric-row"><span class="metric-label">Tamaño Posición</span><span class="metric-value yellow">${d.tamanioPosicion}</span></div>
+        <div style="margin-top:8px;font-size:9px;color:var(--text2)">CONFIRMACIONES SMART MONEY</div>
+        ${(d.confirmaciones||[]).map(c=>`<div style="font-size:9px;color:var(--accent);margin-top:3px;">▶ ${c}</div>`).join('')}
+      </div>
+      <div class="reasons-card">
+        <h4>RAZONES INSTITUCIONALES — IA ANÁLISIS</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+          ${(d.razones||[]).map(r=>`<div class="reason-item"><div class="reason-dot"></div>${r}</div>`).join('')}
+        </div>
+        ${d.analisis?`<div style="margin-top:8px;padding:8px;background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15);border-radius:2px;font-size:10px;color:var(--text2);line-height:1.6;">${d.analisis}</div>`:''}
+      </div>
+    </div>`;
+}
+
+function updateIndicators(d){
+  const map={
+    'ind-rsi':{v:d.rsi,bull:d.rsi>50,bear:d.rsi<40},
+    'ind-macd':{v:d.macdSignal,bull:d.macdSignal==='ALCISTA',bear:d.macdSignal==='BAJISTA'},
+    'ind-vwap':{v:d.vwapPos,bull:d.vwapPos==='ENCIMA',bear:d.vwapPos==='DEBAJO'},
+    'ind-ema9':{v:d.ema9,bull:d.ema9==='+',bear:d.ema9==='-'},
+    'ind-ema20':{v:d.ema20,bull:d.ema20==='+',bear:d.ema20==='-'},
+    'ind-ema200':{v:d.ema200,bull:d.ema200==='+',bear:d.ema200==='-'},
+    'ind-vol':{v:d.volSignal,bull:d.volSignal==='ALTO',bear:false},
+    'ind-delta':{v:d.delta,bull:parseFloat(d.delta)>0.5,bear:parseFloat(d.delta)<0.4},
+    'ind-gamma':{v:d.gamma,bull:false,bear:false},
+    'ind-oi':{v:d.oi,bull:d.oiBull,bear:!d.oiBull},
+    'ind-dark':{v:d.darkPct,bull:d.darkBull,bear:!d.darkBull},
+    'ind-sent':{v:d.sentiment,bull:d.sentiment==='ALCISTA',bear:d.sentiment==='BAJISTA'},
+  };
+  Object.entries(map).forEach(([id,{v,bull,bear}])=>{
+    const el=document.getElementById(id);
+    if(el){el.textContent=v;el.className='ind-value '+(bull?'ind-bull':bear?'ind-bear':'ind-neut');}
+  });
+}
+
+function addMessage(role,text){
+  const chat=document.getElementById('chatArea');
+  const div=document.createElement('div');
+  div.className=`msg ${role}`;
+  const meta=role==='ai'?'⚡ QUANT AI':'👤 TRADER';
+  div.innerHTML=`<div class="msg-meta ${role}">${meta} — ${new Date().toLocaleTimeString('es-ES')}</div>${text}`;
+  chat.appendChild(div);
+  chat.scrollTop=chat.scrollHeight;
+}
+
+async function sendChat(){
+  const input=document.getElementById('chatInput');
+  const msg=input.value.trim();
+  if(!msg||isAnalyzing)return;
+  input.value='';
+  addMessage('user',msg);
+  isAnalyzing=true;
+  const typing=document.createElement('div');
+  typing.className='msg ai';typing.id='typing';
+  typing.innerHTML='<div class="msg-meta ai">⚡ QUANT AI</div><span style="color:var(--text2)">Analizando...</span>';
+  document.getElementById('chatArea').appendChild(typing);
+  document.getElementById('chatArea').scrollTop=99999;
+  try{
+    const system=`Eres un agente de trading institucional experto. Responde en español, de forma concisa y profesional.
+Cuando el usuario pida análisis de un ticker, da señales concretas: acción (COMPRAR/VENDER/ESPERAR), 
+niveles exactos (entrada, stop loss, take profit), análisis de opciones si aplica, y razonamiento institucional.
+Usa emojis. Sé directo y accionable. Máximo 200 palabras.`;
+    const raw=await callClaude(msg,system);
+    document.getElementById('typing')?.remove();
+    addMessage('ai',raw.replace(/\n/g,'<br>'));
+  }catch(e){
+    document.getElementById('typing')?.remove();
+    addMessage('ai','⚠️ '+e.message);
+  }
+  isAnalyzing=false;
+}
+
+function quickChat(tipo){
+  const ticker=document.getElementById('tickerInput').value.trim().toUpperCase()||activeTicker;
+  document.getElementById('chatInput').value=`${tipo}: ${ticker}`;
+  sendChat();
+}
+
+function chatKeydown(e){
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}
+}
+</script>
+</body>
+</html>
